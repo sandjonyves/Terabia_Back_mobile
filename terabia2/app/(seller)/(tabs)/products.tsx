@@ -8,23 +8,27 @@ import { colors, typography, spacing, borderRadius, shadows } from '@/constants/
 import { Product } from '@/types/database';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
-
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 export default function SellerProductsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  useFocusEffect(
+      useCallback(() => {
     if (user?.id) {
       loadProducts(user.id);
     }
-  }, [user?.id]);
+  }, [user?.id])
 
+
+
+)
   const loadProducts = async (sellerId: string) => {
     try {
       const { data } = await api.get(`/products/seller/${sellerId}`);
-
       setProducts(data || []);
     } catch (error) {
       console.error('Error loading products:', error);
@@ -110,8 +114,8 @@ export default function SellerProductsScreen() {
                   style={styles.actionButton}
                   onPress={() =>
                     router.push({
-                      pathname: '/(seller)/product/edit/[id]',
-                      params: { id: item.id },
+                      pathname: '/(seller)/screen/UpdateScreen',
+                      params: {productId: item.id},
                     })
                   }
                 >

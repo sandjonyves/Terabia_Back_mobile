@@ -15,6 +15,8 @@ import { Product } from '@/types/database';
 import { ProductCard } from '@/components/ProductCard';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 
 export default function CatalogScreen() {
   const router = useRouter();
@@ -24,10 +26,12 @@ export default function CatalogScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
+  useFocusEffect(
+      useCallback(() => {
     loadProducts();
-  }, [categoryId]);
+  }, [categoryId])
 
+)
   const loadProducts = async () => {
     try {
       let url = '/products';

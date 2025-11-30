@@ -5,6 +5,8 @@ import api from '@/lib/api'; // Updated import
 import { useAuth } from '@/contexts/AuthContext';
 import { colors, typography, spacing, borderRadius, shadows } from '@/constants/theme';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 
 interface Stats {
   totalProducts: number;
@@ -23,28 +25,39 @@ export default function SellerDashboard() {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  useFocusEffect(
+      useCallback(() => {
     if (user?.id) {
       loadStats(user.id);
     }
-  }, [user?.id]);
+  }, [user?.id])
 
-  const loadStats = async (sellerId: string) => {
-    try {
-      const { data } = await api.get(`/users/stats/${sellerId}`);
+  )
 
-      setStats({
-        totalProducts: data.totalProducts,
-        activeProducts: data.activeProducts,
-        totalOrders: data.totalOrders,
-        totalRevenue: data.totalRevenue,
-      });
-    } catch (error) {
-      console.error('Error loading stats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+const loadStats = async (sellerId: string) => {
+  try {
+    const { data } = await api.get(`/users/stats/${sellerId}`);
+    
+    // AJOUTE CETTE LIGNE MAGIQUE
+    console.log("Données brutes reçues du backend :", data);
+
+    // Force la conversion en nombres + fallback sécurisé
+    const newStats = {
+      totalProducts: Number(data.totalProducts) || 0,
+      activeProducts: Number(data.activeProducts) || 0,
+      totalOrders: Number(data.totalOrders) || 0,
+      totalRevenue: Number(data.totalRevenue) || 0,
+    };
+
+    console.log("Stats après conversion en nombre :", newStats);
+
+    setStats(newStats);
+  } catch (error: any) {
+    console.error('Error loading stats:', error.response?.data || error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (loading) {
     return <LoadingSpinner />;
@@ -72,7 +85,7 @@ export default function SellerDashboard() {
     {
       icon: DollarSign,
       label: 'Revenue',
-      value: `${stats.totalRevenue.toLocaleString()} XAF`,
+      value: `${Math.round(stats.totalRevenue).toLocaleString()} XAF`,
       color: colors.accent.yellow,
     },
   ];

@@ -1,14 +1,44 @@
 const { Order } = require('../models');
+// 1. IMPORT NÉCESSAIRE DU CONTRÔLEUR DE LIVRAISON ET DE L'INSTANCE SEQUELIZE
+const deliveryController = require('./deliveryController'); 
+const sequelize = Order.sequelize; 
 
+/**
+ * Crée une nouvelle commande et la livraison associée en utilisant une transaction.
+ */
 exports.createOrder = async (req, res) => {
+  // Démarre la transaction pour lier la Commande et la Livraison
+  const transaction = await sequelize.transaction();
+
   try {
-    const newOrder = await Order.create(req.body);
+    // 1. CRÉATION DE LA COMMANDE (dans la transaction)
+    const newOrder = await Order.create(req.body, { transaction });
+
+    // 2. CRÉATION AUTOMATIQUE DE LA LIVRAISON (dans la transaction)
+    await deliveryController.createDeliveryFromOrder(newOrder, transaction); 
+
+    // 3. VALIDER : Si les deux sont réussis, on valide les écritures
+    await transaction.commit();
+    
+    // Réponse de succès
     res.status(201).json(newOrder);
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    // 4. ANNULER : Si l'une des étapes échoue, on annule toutes les modifications
+    if (transaction) await transaction.rollback();
+    
+    console.error("Erreur critique lors de la création de la commande et de la livraison :", error.message);
+
+    res.status(500).json({ 
+      error: "La commande n'a pas pu être créée en raison d'une erreur interne (Rollback effectué).",
+      details: error.message
+    });
   }
 };
 
+/**
+ * Récupère une commande par son ID.
+ */
 exports.getOrderById = async (req, res) => {
   try {
     const order = await Order.findByPk(req.params.id);
@@ -21,6 +51,9 @@ exports.getOrderById = async (req, res) => {
   }
 };
 
+/**
+ * Met à jour une commande par son ID.
+ */
 exports.updateOrder = async (req, res) => {
   try {
     const [updatedRows] = await Order.update(req.body, {
@@ -36,6 +69,9 @@ exports.updateOrder = async (req, res) => {
   }
 };
 
+/**
+ * Supprime une commande par son ID.
+ */
 exports.deleteOrder = async (req, res) => {
   try {
     const deletedRows = await Order.destroy({
@@ -50,6 +86,9 @@ exports.deleteOrder = async (req, res) => {
   }
 };
 
+/**
+ * Récupère toutes les commandes.
+ */
 exports.getAllOrders = async (req, res) => {
   try {
     const orders = await Order.findAll();
@@ -59,6 +98,9 @@ exports.getAllOrders = async (req, res) => {
   }
 };
 
+/**
+ * Récupère toutes les commandes d'un acheteur spécifique.
+ */
 exports.getOrdersByBuyerId = async (req, res) => {
   try {
     const orders = await Order.findAll({

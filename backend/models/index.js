@@ -10,28 +10,41 @@ const Transaction = require('./transactionModel')(sequelize, Sequelize);
 const Review = require('./reviewModel')(sequelize, Sequelize);
 const AuthUser = require('./authUserModel')(sequelize, Sequelize);
 
-// Define Associations
+// ================================================================
+// DÉFINITION DES ASSOCIATIONS (CORRIGÉES AVEC ALIAS)
+// ================================================================
+
+// Authentification
 AuthUser.hasOne(User, { foreignKey: 'id', onDelete: 'CASCADE' });
 User.belongsTo(AuthUser, { foreignKey: 'id' });
 
+// Produits & Vendeur
 User.hasMany(Product, { foreignKey: 'seller_id', onDelete: 'CASCADE' });
 Product.belongsTo(User, { foreignKey: 'seller_id' });
 
 Category.hasMany(Product, { foreignKey: 'category_id' });
 Product.belongsTo(Category, { foreignKey: 'category_id' });
 
-User.hasMany(Order, { foreignKey: 'buyer_id' });
-Order.belongsTo(User, { foreignKey: 'buyer_id' });
+// Commandes
+User.hasMany(Order, { foreignKey: 'buyer_id', as: 'orders' });
+Order.belongsTo(User, { foreignKey: 'buyer_id', as: 'buyer' });
 
-User.hasMany(Delivery, { foreignKey: 'agency_id' });
-Delivery.belongsTo(User, { foreignKey: 'agency_id' });
+// Agence / Livreur
+// ⚠️ AJOUT DE 'as: agency' et 'as: deliveries'
+User.hasMany(Delivery, { foreignKey: 'agency_id', as: 'deliveries' });
+Delivery.belongsTo(User, { foreignKey: 'agency_id', as: 'agency' });
 
-Order.hasOne(Delivery, { foreignKey: 'order_id', onDelete: 'CASCADE' });
-Delivery.belongsTo(Order, { foreignKey: 'order_id' });
+// Livraison <-> Commande
+// ⚠️ C'EST ICI QUE TU AVAIS L'ERREUR 500 !
+// J'ai ajouté "as: 'Order'" pour matcher avec le contrôleur.
+Order.hasOne(Delivery, { foreignKey: 'order_id', onDelete: 'CASCADE', as: 'delivery' });
+Delivery.belongsTo(Order, { foreignKey: 'order_id', as: 'Order' });
 
+// Transactions
 Order.hasMany(Transaction, { foreignKey: 'order_id', onDelete: 'CASCADE' });
 Transaction.belongsTo(Order, { foreignKey: 'order_id' });
 
+// Reviews
 Order.hasMany(Review, { foreignKey: 'order_id' });
 Review.belongsTo(Order, { foreignKey: 'order_id' });
 

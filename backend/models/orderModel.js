@@ -74,8 +74,21 @@ module.exports = (sequelize) => {
     hooks: {
       beforeValidate: async (order, options) => {
         if (!order.order_number) {
-          const [result] = await sequelize.query(`SELECT 'TRB' || STRFTIME('%Y%m%d', 'now') || LPAD((SELECT IFNULL(MAX(id), 0) + 1 FROM orders), 6, '0') AS order_number;`);
-          order.order_number = result[0].order_number;
+          
+          // 1. Requête SQL compatible avec SQLite pour obtenir la date et le prochain ID
+          const [results] = await sequelize.query(
+            `SELECT STRFTIME('%Y%m%d', 'now') AS datePart, IFNULL(MAX(id), 0) + 1 AS nextId FROM orders;`
+          );
+          
+          // 2. Extraction des valeurs
+          // SQLite retourne le résultat dans un tableau, on prend le premier élément [0]
+          const { datePart, nextId } = results[0];
+          
+          // 3. Remplissage par zéro (Padding) en JavaScript (équivalent de LPAD)
+          const paddedId = String(nextId).padStart(6, '0');
+          
+          // 4. Assemblage du numéro de commande complet
+          order.order_number = `TRB${datePart}${paddedId}`;
         }
       },
     },

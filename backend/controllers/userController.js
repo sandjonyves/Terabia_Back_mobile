@@ -73,15 +73,16 @@ exports.getSellerStats = async (req, res) => {
       where: { seller_id: sellerId, is_active: true },
     });
 
-    // Total Orders and Revenue (more complex due to items being JSONB)
-    // This will require a raw query or more complex Sequelize logic to sum across JSONB items
+    // Total Orders and Revenue (Correction pour SQLite et json_each)
     const ordersStats = await sequelize.query(`
       SELECT
         COUNT(DISTINCT o.id) AS "totalOrders",
-        SUM(CAST(item->>'price' AS REAL) * CAST(item->>'quantity' AS INTEGER)) AS "totalRevenue"
+        -- 💡 CORRECTION: Utiliser item.value->>'unit_price' et item.value->>'quantity'
+        SUM(CAST(item.value->>'unit_price' AS REAL) * CAST(item.value->>'quantity' AS INTEGER)) AS "totalRevenue"
       FROM orders AS o,
       json_each(o.items) AS item
-      JOIN products AS p ON CAST(item->>'productId' AS INTEGER) = p.id
+      -- 💡 CORRECTION: Utiliser item.value->>'product_id' pour la jointure
+      JOIN products AS p ON CAST(item.value->>'product_id' AS INTEGER) = p.id
       WHERE p.seller_id = :sellerId
     `, {
       replacements: { sellerId },
@@ -95,6 +96,8 @@ exports.getSellerStats = async (req, res) => {
       totalRevenue: ordersStats[0].totalRevenue || 0,
     });
   } catch (error) {
+    // Si l'erreur se produit ici, elle sera capturée et renvoyée en 500
+    console.error("Erreur dans getSellerStats:", error.message);
     res.status(500).json({ error: error.message });
   }
 };

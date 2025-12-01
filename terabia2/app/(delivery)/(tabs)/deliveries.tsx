@@ -61,9 +61,37 @@ export default function DeliveriesScreen() {
   const updateStatus = async (deliveryId: number, newStatus: string) => {
     try {
       await axios.put(`${API_BASE_URL}/deliveries/${deliveryId}`, { 
+        order_id:
         status: newStatus 
       });
-      // On recharge la liste pour voir le changement de statut
+      // On recharge la liste pour voir le changement de statuexports.updateDelivery = async (req, res) => {
+  try {
+    const [updatedRows] = await Delivery.update(req.body, {
+      where: { id: req.params.id },
+    });
+    if (updatedRows === 0) {
+      return res.status(404).json({ error: 'Delivery not found' });
+    }
+    if(req.body.status==DELIVERY_STATUS.ACCEPTED){
+          await updateOrderStatus(updatedDelivery.order_id,ORDER_STATUS.ACCEPTED);
+    }else if(req.body.status==DELIVERY_STATUS.EN_ROUTE){
+          await updateOrderStatus(updatedDelivery.order_id,ORDER_STATUS.IN_TRANSIT);
+    }else if(req.body.status==DELIVERY_STATUS.DELIVERED){
+          await updateOrderStatus(updatedDelivery.order_id,ORDER_STATUS.DELIVERED);
+    }else if(req.body.status==DELIVERY_STATUS.CANCELLED){
+          await updateOrderStatus(updatedDelivery.order_id,ORDER_STATUS.PENDING);
+          const update
+    }
+
+    const updatedDelivery = await Delivery.findByPk(req.params.id);
+
+
+    res.status(200).json(updatedDelivery);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+t
       fetchMyMissions();
     } catch (error) {
       console.error(error);

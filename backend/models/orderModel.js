@@ -8,6 +8,7 @@ module.exports = (sequelize) => {
       primaryKey: true,
       autoIncrement: true,
     },
+
     buyer_id: {
       type: DataTypes.UUID,
       allowNull: false,
@@ -16,46 +17,56 @@ module.exports = (sequelize) => {
         key: 'id',
       },
     },
+
     order_number: {
       type: DataTypes.TEXT,
       unique: true,
-      allowNull: false,
     },
+
     items: {
-      type: DataTypes.JSONB,
+      type: DataTypes.JSON, // JSONB incompatible SQLite
       allowNull: false,
     },
+
     subtotal: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
+
     delivery_fee: {
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0,
     },
+
     total: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
+
     status: {
-      type: DataTypes.ENUM(Object.values(ORDER_STATUS)),
+      type: DataTypes.ENUM(...Object.values(ORDER_STATUS)),
       defaultValue: ORDER_STATUS.PENDING,
     },
+
     payment_status: {
-      type: DataTypes.ENUM(Object.values(PAYMENT_STATUS)),
+      type: DataTypes.ENUM(...Object.values(PAYMENT_STATUS)),
       defaultValue: PAYMENT_STATUS.PENDING,
     },
+
     delivery_address: {
       type: DataTypes.TEXT,
       allowNull: false,
     },
+
     delivery_city: {
       type: DataTypes.TEXT,
       allowNull: false,
     },
+
     delivery_coords: {
-      type: DataTypes.JSONB,
+      type: DataTypes.JSON,
     },
+
     delivery_agency_id: {
       type: DataTypes.UUID,
       references: {
@@ -63,22 +74,35 @@ module.exports = (sequelize) => {
         key: 'id',
       },
     },
+
     buyer_notes: {
       type: DataTypes.TEXT,
     },
+
   }, {
     tableName: 'orders',
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
+
     hooks: {
-      beforeValidate: async (order, options) => {
+      beforeCreate: async (order) => {
         if (!order.order_number) {
-          const [result] = await sequelize.query(`SELECT 'TRB' || STRFTIME('%Y%m%d', 'now') || LPAD((SELECT IFNULL(MAX(id), 0) + 1 FROM orders), 6, '0') AS order_number;`);
-          order.order_number = result[0].order_number;
+          // Récupérer le dernier ID
+          const lastOrder = await Order.findOne({
+            order: [['id', 'DESC']]
+          });
+
+          const nextId = lastOrder ? lastOrder.id + 1 : 1;
+
+          // Générer : TRB20241201000001
+          const date = new Date().toISOString().slice(0,10).replace(/-/g,''); // YYYYMMDD
+          const padded = String(nextId).padStart(6, '0');
+
+          order.order_number = `TRB${date}${padded}`;
         }
-      },
-    },
+      }
+    }
   });
 
   return Order;
